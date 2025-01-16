@@ -1,0 +1,13 @@
+# Arquivos de compilação
+/target/
+/bin/
+
+# Arquivos do IntelliJ
+.idea/
+*.iml
+
+# Arquivos temporários do sistema operacional
+*.log
+*.class
+.DS_Store
+Thumbs.db
