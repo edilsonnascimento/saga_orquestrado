@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collation = "event")
+@Document(collection = "event")
 public class Event {
 
     @Id
@@ -25,5 +25,5 @@ public class Event {
     private String source;
     private String status;
     private List<History> eventHistory;
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 }
