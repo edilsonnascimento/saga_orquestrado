@@ -15,11 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
 
 import static org.springframework.util.ObjectUtils.isEmpty;
-import static sun.security.krb5.internal.ccache.FileCredentialsCache.checkValidation;
 
 @Slf4j
 @Service
@@ -97,5 +94,28 @@ public class ProductValidationService {
                 .createAt(LocalDateTime.now())
                 .build();
         event.addHistory(history);
+    }
+
+    private void handleFailCurrentNotExecuted(Event event, String message) {
+        event.setStatus(ESagaStatus.ROLLBACK_PENDING);
+        event.setSource(CURRENT_SOURCE);
+        addHistory(event, "Fail to validate products: "  + message);
+    }
+
+    public void rollbackEvent(Event event) {
+        changeValidationToFail(event);
+        event.setStatus(ESagaStatus.FAIL);
+        event.setSource(CURRENT_SOURCE);
+        addHistory(event, "Rollback executed on product validation!");
+    }
+
+    private void changeValidationToFail(Event event) {
+        validationRepository
+                .findByOrderIdAndTransactionId(event.getOrderId(), event.getTransactionId())
+                .ifPresentOrElse(validation -> {
+                    validation.setSuccess(false);
+                    validationRepository.save(validation);
+                },
+                () -> createValidation(event, false));
     }
 }
