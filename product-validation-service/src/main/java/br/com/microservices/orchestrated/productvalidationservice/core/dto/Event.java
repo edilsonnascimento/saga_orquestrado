@@ -27,7 +27,7 @@ public class Event {
     private LocalDateTime createAt;
 
     public void addHistory(History history) {
-        if(ObjectUtils.isEmpty(history))
+        if(ObjectUtils.isEmpty(eventHistory))
             this.eventHistory = new ArrayList<>();
         this.eventHistory.add(history);
     }

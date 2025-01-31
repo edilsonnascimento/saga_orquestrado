@@ -107,6 +107,7 @@ public class ProductValidationService {
         event.setStatus(ESagaStatus.FAIL);
         event.setSource(CURRENT_SOURCE);
         addHistory(event, "Rollback executed on product validation!");
+        kafkaProducer.sendEvent(jsonUtil.toJson(event));
     }
 
     private void changeValidationToFail(Event event) {

@@ -14,6 +14,7 @@ import org.webjars.NotFoundException;
 import java.nio.channels.NotYetBoundException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.util.ObjectUtils.isEmpty;
 
@@ -42,9 +43,10 @@ public class EventService {
     public Event findByFilters(EventFilters filters) {
         validateEmptyFilters(filters);
         if(!isEmpty(filters.getOrderId()))
-            return repository.findTop1ByOrderIdOrderByCreatedAtDesc(filters.getOrderId())
+            return repository.findTop1ByOrderId(filters.getOrderId())
                     .orElseThrow(() -> new ValidationException("Order by orderId"));
-        return repository.findTop1ByTransactionIdOrderByCreatedAtDesc(filters.getTransactionId())
+
+        return repository.findTop1ByTransactionId(filters.getTransactionId())
                 .orElseThrow(() -> new ValidationException("Transaction by transactionId"));
     }
 
