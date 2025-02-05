@@ -65,7 +65,7 @@ public class PaymentService {
     private Double calculateAmount(Event event) {
         return event
                 .getPayload()
-                .getOrderProducts()
+                .getProducts()
                 .stream()
                 .map(product -> product.getQuantity() * product.getProduct().getUnitValue())
                 .reduce(REDUCE_SUM_VALUE, Double::sum);
@@ -74,7 +74,7 @@ public class PaymentService {
     private Integer calculateItems(Event event) {
         return event
                 .getPayload()
-                .getOrderProducts()
+                .getProducts()
                 .stream()
                 .map(OrderProducts::getQuantity)
                 .reduce(REDUCE_SUM_VALUE.intValue(), Integer::sum);
@@ -93,7 +93,7 @@ public class PaymentService {
 
     private void validateTotalAmount(Double totalAmount) {
         if(totalAmount < MIN_TOTAL_AMOUNT_VALUE)
-            throw new ValidationException("The minium total amount available is" + MIN_TOTAL_AMOUNT_VALUE);
+            throw new ValidationException("The minium total amount available is " + MIN_TOTAL_AMOUNT_VALUE);
     }
 
     private void changePaymentToSuccess(Payment payment) {
@@ -124,10 +124,14 @@ public class PaymentService {
     }
 
     public void realizeRefund(Event event) {
-        changePaymentStatusToRefund(event);
         event.setStatus(ESagaStatus.FAIL);
         event.setSource(CURRENT_SOURCE);
-        addHistory(event, "Rollback executed for payment!");
+        try {
+            changePaymentStatusToRefund(event);
+            addHistory(event, "Rollback executed for payment!");
+        } catch (Exception ex) {
+            addHistory(event, "Rollback executed for payment: " + ex.getMessage());
+        }
         producer.sendEvent(jsonUtil.toJson(event));
     }
 
