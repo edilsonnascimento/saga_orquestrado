@@ -2,7 +2,10 @@ package br.com.microservices.orchestrated.inventoryservice.core.service;
 
 import br.com.microservices.orchestrated.inventoryservice.config.exception.ValidationException;
 import br.com.microservices.orchestrated.inventoryservice.core.dto.Event;
+import br.com.microservices.orchestrated.inventoryservice.core.dto.History;
+import br.com.microservices.orchestrated.inventoryservice.core.dto.Order;
 import br.com.microservices.orchestrated.inventoryservice.core.dto.OrderProduct;
+import br.com.microservices.orchestrated.inventoryservice.core.enums.ESagaStatus;
 import br.com.microservices.orchestrated.inventoryservice.core.model.Inventory;
 import br.com.microservices.orchestrated.inventoryservice.core.model.OrderInventory;
 import br.com.microservices.orchestrated.inventoryservice.core.producer.KafkaProducer;
@@ -12,6 +15,8 @@ import br.com.microservices.orchestrated.inventoryservice.core.utils.JsonUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -25,12 +30,14 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final OrderInventoryRepository orderInventoryRepository;
 
-    public void updateInvetory(Event event) {
+    public void updateInventory(Event event) {
         try {
             checkCurrentValidation(event);
             createOrderInventory(event);
+            updateInventory(event.getPayload());
+            handleSuccess(event);
         } catch(Exception ex) {
-            log.error("Error trying to update invetory: ", ex);
+            log.error("Error trying to update inventory: ", ex);
         }
         producer.sendEvent(jsonUtil.toJson(event));
     }
@@ -67,5 +74,36 @@ public class InventoryService {
                 .orderId(event.getPayload().getId())
                 .transactionId(event.getTransactionId())
                 .build();
+    }
+
+    private void updateInventory(Order order) {
+        order.getOrderProducts()
+                .forEach(orderProduct -> {
+                    var inventory = findInventoryByProductCode(orderProduct.getProduct().getCode());
+                    checkInventory(inventory.getAvailable(), orderProduct.getQuantity());
+                    inventory.setAvailable(inventory.getAvailable() - orderProduct.getQuantity());
+                    inventoryRepository.save(inventory);
+                });
+    }
+
+    private void checkInventory(int available, int orderQuantity) {
+        if (orderQuantity > available)
+            throw new ValidationException("Product is out of stock!");
+    }
+
+    private void handleSuccess(Event event) {
+        event.setStatus(ESagaStatus.SUCCESS);
+        event.setSource(CURRENT_SOURCE);
+        addHistory(event, "Inventory update successfully!");
+    }
+
+    private void addHistory(Event event, String message) {
+        var history = History.builder()
+                .source(event.getSource())
+                .status(event.getStatus())
+                .message(message)
+                .createAt(LocalDateTime.now())
+                .build();
+        event.addToHistory(history);
     }
 }
