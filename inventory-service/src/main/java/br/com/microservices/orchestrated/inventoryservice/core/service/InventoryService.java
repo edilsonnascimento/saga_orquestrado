@@ -52,7 +52,7 @@ public class InventoryService {
     private void createOrderInventory(Event event) {
         event
                 .getPayload()
-                .getOrderProducts()
+                .getProducts()
                 .forEach(orderProduct -> {
                     var inventory = findInventoryByProductCode(orderProduct.getProduct().getCode());
                     var orderInventory = createOrderInventory(event, orderProduct, inventory);
@@ -78,7 +78,7 @@ public class InventoryService {
     }
 
     private void updateInventory(Order order) {
-        order.getOrderProducts()
+        order.getProducts()
                 .forEach(orderProduct -> {
                     var inventory = findInventoryByProductCode(orderProduct.getProduct().getCode());
                     checkInventory(inventory.getAvailable(), orderProduct.getQuantity());
