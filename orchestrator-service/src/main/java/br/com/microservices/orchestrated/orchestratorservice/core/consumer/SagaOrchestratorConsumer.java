@@ -1,5 +1,6 @@
 package br.com.microservices.orchestrated.orchestratorservice.core.consumer;
 
+import br.com.microservices.orchestrated.orchestratorservice.core.service.OrchestratorService;
 import br.com.microservices.orchestrated.orchestratorservice.core.utils.JsonUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class SagaOrchestratorConsumer {
 
     private final JsonUtil jsonUtil;
+    private final OrchestratorService service;
 
     @KafkaListener(
             groupId = "${spring.kafka.consumer.group-id}",
@@ -20,7 +22,7 @@ public class SagaOrchestratorConsumer {
     public void consumeStartSagaEvent(String payload) {
         log.info("Receiving ending notificatio envent {} from start-saga topic", payload);
         var event = jsonUtil.toEvent(payload);
-        log.info(event.toString());
+        service.startSaga(event);
     }
 
     @KafkaListener(
@@ -30,7 +32,7 @@ public class SagaOrchestratorConsumer {
     public void consumeOrchestratorEvent(String payload) {
         log.info("Receiving ending notificatio envent {} from orchestrator topic", payload);
         var event = jsonUtil.toEvent(payload);
-        log.info(event.toString());
+        service.continueSaga(event);
     }
 
     @KafkaListener(
@@ -40,16 +42,16 @@ public class SagaOrchestratorConsumer {
     public void consumeFinishSuccessEvent(String payload) {
         log.info("Receiving ending notificatio envent {} from finish-success topic", payload);
         var event = jsonUtil.toEvent(payload);
-        log.info(event.toString());
+        service.finishSagaSuccess(event);
     }
 
     @KafkaListener(
             groupId = "${spring.kafka.consumer.group-id}",
-            topics = "${spring.kafka.topic.finish-success}"
+            topics = "${spring.kafka.topic.finish-fail}"
     )
     public void consumeFinishFailEvent(String payload) {
         log.info("Receiving ending notificatio envent {} from finish-fail topic", payload);
         var event = jsonUtil.toEvent(payload);
-        log.info(event.toString());
+        service.finishSagaFail(event);
     }
 }
